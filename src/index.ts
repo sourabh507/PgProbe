@@ -1,7 +1,8 @@
-#!/usr/bin/env node
-
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import express from "express";
+import cors from "cors";
 import { z } from "zod";
 import { DatabaseManager } from "./database.js";
 import { SchemaTools } from "./tools/schema.js";
@@ -639,9 +640,37 @@ server.resource(
 // ═══════════════════════════════════════════════════════════════════════════════
 
 async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("DB Explorer MCP Server running on stdio");
+  const isSse = process.env.MCP_TRANSPORT === "sse" || process.argv.includes("--sse");
+
+  if (isSse) {
+    const app = express();
+    app.use(cors());
+
+    let transport: SSEServerTransport | null = null;
+
+    app.get("/sse", async (req, res) => {
+      console.error("New SSE connection established");
+      transport = new SSEServerTransport("/messages", res);
+      await server.connect(transport);
+    });
+
+    app.post("/messages", async (req, res) => {
+      if (transport) {
+        await transport.handlePostMessage(req, res);
+      } else {
+        res.status(400).send("No active SSE session");
+      }
+    });
+
+    const port = process.env.PORT || 3000;
+    app.listen(port, () => {
+      console.error(`DB Explorer MCP Server running on SSE at http://localhost:${port}`);
+    });
+  } else {
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    console.error("DB Explorer MCP Server running on stdio");
+  }
 }
 
 main().catch((error) => {
