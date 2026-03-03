@@ -646,6 +646,25 @@ async function main() {
     const app = express();
     app.use(cors());
 
+    app.get("/", (req, res) => {
+      res.send(`
+        <html>
+          <head><title>PgProbe MCP Server</title></head>
+          <body style="font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f4f4f9;">
+            <div style="padding: 2rem; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center;">
+              <h1 style="color: #333;">🚀 PgProbe MCP Server is Live</h1>
+              <p style="color: #666;">This is a PostgreSQL Model Context Protocol server.</p>
+              <div style="background: #eee; padding: 1rem; border-radius: 4px; border-left: 4px solid #007bff; text-align: left; margin-top: 1rem;">
+                <strong>MCP Endpoint:</strong> <code>/sse</code><br>
+                <strong>Message Endpoint:</strong> <code>/messages</code>
+              </div>
+              <p style="margin-top: 1.5rem; font-size: 0.9rem; color: #888;">Designed for Claude Desktop and IDE integration.</p>
+            </div>
+          </body>
+        </html>
+      `);
+    });
+
     let transport: SSEServerTransport | null = null;
 
     app.get("/sse", async (req, res) => {
